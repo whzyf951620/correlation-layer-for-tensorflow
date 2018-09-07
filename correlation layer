@@ -1,0 +1,46 @@
+     def correlation(self, t0, t1, N, kernel_size):
+         n, h, w, c = t0.get_shape().as_list()
+         print (n, h, w, c)
+         k = kernel_size
+         K = 2 * k + 1
+         img0 = tf.image.resize_image_with_crop_or_pad(t0, h + 2 * k, w + 2 * k)
+ #        img0 = t0
+         img1 = tf.image.resize_image_with_crop_or_pad(t1, h + 2 * k + 2 * N, w + 2 * k + 2 * N)
+         t_0 = tf.split(img0, n, 0)
+         t_1 = tf.split(img1, n, 0)
+         tmp_ = tf.zeros([1, h + 2 * k, w + 2 * k, 1], dtype = tf.float32)
+         filter1 = tf.ones([K, K, 1, 1], dtype = tf.float32)
+         for bs_0 in range (0, n):
+             t_0_0 = tf.split(t_0[bs_0], c, 3)
+             t_0_0 = tf.squeeze(t_0_0)
+             t_1_1 = tf.split(t_1[bs_0], c, 3)
+             t_1_1 = tf.squeeze(t_1_1)
+             for h_0 in range(0, 2*N+1):
+                 for w_0 in range(0, 2*N+1):
+ #                    tmp_ = tf.zeros([1, h + 2 * k, w + 2 * k, 1], dtype = tf.float32)
+ #                    tmp_ = tf.zeros([1, h , w , 1], dtype = tf.float32)
+                     for c_0 in range(0, 20):
+                         p1 = tf.slice(t_1_1[c_0], [h_0, w_0], [h + 2 * k, w + 2 * k])
+ #                        p1 = tf.slice(t_1_1[c_0], [h_0, w_0], [h , w ])
+                         tmp = tf.multiply(t_0_0[c_0], p1)
+                         tmp = tf.expand_dims(tmp, axis = 0)
+                         tmp = tf.expand_dims(tmp, axis = 3)
+ #                        tmp_ = tf.nn.conv2d(tmp, filter1, strides=[1, 1, 1, 1], padding='VALID')
+                         tmp_ = tf.add(tmp_, tmp)
+ #                        if c_0 == 0:
+  #                           tmp_r = tf.concat([tmp_], axis = 3)
+ #                        else:
+ #                            tmp_r = tf.concat([tmp_, tmp_r], axis = 3)
+                     tmp_r = tf.nn.conv2d(tmp_, filter1, strides=[1, 1, 1, 1], padding='VALID')
+                     if h_0 == 0 and w_0 == 0:
+                         p_update_1 = tf.concat(tmp_r, axis = 3)
+ #                        p_update_1 = tf.concat(tmp_, axis = 3)
+                     else:
+                         p_update_1 = tf.concat([p_update_1, tmp_r], axis = 3)
+ #                        p_update_1 = tf.concat([p_update_1, tmp_], axis = 3)  
+             if bs_0 == 0:
+                 p_update_bs = tf.concat(p_update_1, axis = 0)
+             else:
+                 p_update_bs = tf.concat([p_update_bs, p_update_1],axis = 0)
+         return p_update_bs
+
